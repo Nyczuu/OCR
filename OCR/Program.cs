@@ -6,11 +6,16 @@ using Emgu.CV.Util;
 using OCR;
 using System.Drawing;
 
-Console.WriteLine("Hello, World!");
-using var img = CvInvoke.Imread("test1.jpeg", ImreadModes.AnyColor);
-var processor = new ImageProcessor();
-var processedImg = processor.ProcessImage(img);
-processedImg.Save("processed.png");
+var testData = Directory.GetFiles("TestData").Where(x => !x.Contains("_processed"));
+foreach(var file in testData)
+{
+    using var img = CvInvoke.Imread(file, ImreadModes.AnyColor);
+    var processor = new ImageProcessor();
+    var processedImg = processor.ProcessImage(img);
+    processedImg.Save(file.Replace(".png", "_processed.png"));
+
+}
+
 
 
 public class ImageProcessor
@@ -22,6 +27,9 @@ public class ImageProcessor
         using Mat rectangleImage = new(img.Size, DepthType.Cv8U, 3); //image to draw and rectangles on
         using Mat lineImage = new(img.Size, DepthType.Cv8U, 3); //image to draw lines on
         using Mat arrowImage = new(img.Size, DepthType.Cv8U, 3);
+        rectangleImage.SetTo(new MCvScalar(0));
+        lineImage.SetTo(new MCvScalar(0));
+        arrowImage.SetTo(new MCvScalar(0));
 
         if (img.NumberOfChannels < 3)
         {
@@ -39,9 +47,10 @@ public class ImageProcessor
         LineSegment2D[] lines = CvInvoke.HoughLinesP(cannyEdges, 1, Math.PI / 45.0, 10, 10, 20);
         cannyEdges.Save("canny.png");
 
-        List<Arrow> headList = new List<Arrow>();
-        List<Arrow> tailList = new List<Arrow>();
+        List<LineSegment2D[]> potentialTailList = new List<LineSegment2D[]>();
         List<RotatedRect> boxList = new List<RotatedRect>();
+        List<Arrow> arrowList = new List<Arrow>();
+
         using var contours = new VectorOfVectorOfPoint();
         CvInvoke.FindContours(cannyEdges, contours, null, RetrType.List, ChainApproxMethod.ChainApproxSimple);
 
@@ -51,41 +60,56 @@ public class ImageProcessor
             using var approxContour = new VectorOfPoint();
             CvInvoke.ApproxPolyDP(contour, approxContour, CvInvoke.ArcLength(contour, true) * 0.05, true);
 
-            if (approxContour.Size == 4) //The contour has 4 vertices.
+            if (approxContour.Size == 2 && CvInvoke.ContourArea(contour) > 1)
             {
-                #region determine if all the angles in the contour are within [80, 100] degree
-                bool isRectangle = true;
-                LineSegment2D[] edges = PointCollection.PolyLine(approxContour.ToArray(), true);
-
-                for (int j = 0; j < edges.Length; j++)
-                {
-                    double angle = Math.Abs(edges[(j + 1) % edges.Length].GetExteriorAngleDegree(edges[j]));
-                    if (angle < 80 || angle > 100)
-                    {
-                        isRectangle = false;
-                        break;
-                    }
-                }
-
-                #endregion
-
-                if (isRectangle)
-                {
-                    boxList.Add(CvInvoke.MinAreaRect(approxContour));
-                }
-                else
-                {
-                    headList.Add(Arrow.FromLines(edges));
-                }
-            }
-            else if (approxContour.Size == 2)
-            {
-                LineSegment2D[] edges = PointCollection.PolyLine(approxContour.ToArray(), true);
-                tailList.Add(Arrow.FromLines(edges));
+                potentialTailList.Add(PointCollection.PolyLine(approxContour.ToArray(), true));
             }
         }
 
-        rectangleImage.SetTo(new MCvScalar(0));
+        for (var i = 0; i < contours.Size; i++)
+        { 
+            using var contour = contours[i];
+            using var approxContour = new VectorOfPoint();
+
+            CvInvoke.ApproxPolyDP(contour, approxContour, CvInvoke.ArcLength(contour, true) * 0.05, true);
+            var area = CvInvoke.ContourArea(contour);
+            if (area > 25)
+            { 
+                if (approxContour.Size == 4)
+                {
+                    bool isRectangle = true;
+                    LineSegment2D[] edges = PointCollection.PolyLine(approxContour.ToArray(), true);
+
+                    for (int j = 0; j < edges.Length; j++)
+                    {
+                        double angle = Math.Abs(edges[(j + 1) % edges.Length].GetExteriorAngleDegree(edges[j]));
+                        if (angle < 88 || angle > 92)
+                        {
+                            isRectangle = false;
+                            break;
+                        }
+                    }
+
+                    if (isRectangle)
+                    {
+                        boxList.Add(CvInvoke.MinAreaRect(approxContour));
+                    }
+                    else
+                    {
+                        foreach (var potentialTail in potentialTailList)
+                        {
+                            var distanceP1 = CvInvoke.PointPolygonTest(contour, potentialTail.First().P1, true);
+                            var distanceP2 = CvInvoke.PointPolygonTest(contour, potentialTail.First().P2, true);
+                            
+                            if (Math.Min(Math.Abs(distanceP1), Math.Abs(distanceP2)) <= 2)
+                            {
+                                arrowList.Add(new Arrow(edges, potentialTail));
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         foreach (RotatedRect box in boxList)
         {
@@ -96,19 +120,18 @@ public class ImageProcessor
         AddLabel(rectangleImage, "Rectangles");
 
 
-        lineImage.SetTo(new MCvScalar(0));
-        foreach (var arrow in headList)
-            foreach (var line in arrow.Lines)
+        foreach (var arrow in arrowList)
+        {
+            foreach (var line in arrow.Tail)
                 CvInvoke.Line(arrowImage, line.P1, line.P2, new Bgr(Color.Blue).MCvScalar, 2);
 
-        foreach (var arrow in tailList)
-            foreach (var line in arrow.Lines)
+            foreach (var line in arrow.Head)
                 CvInvoke.Line(arrowImage, line.P1, line.P2, new Bgr(Color.Blue).MCvScalar, 2);
+        }
 
         AddFrame(arrowImage);
         AddLabel(arrowImage, "Arrows");
 
-        lineImage.SetTo(new MCvScalar(0));
         foreach (LineSegment2D line in lines)
             CvInvoke.Line(lineImage, line.P1, line.P2, new Bgr(Color.Green).MCvScalar, 2);
 
@@ -123,7 +146,7 @@ public class ImageProcessor
         static void AddLabel(Mat img, string label)
             => CvInvoke.PutText(img, label, new Point(20, 20), FontFace.HersheyDuplex, 0.5, new MCvScalar(120, 120, 120));
 
-        static void AddFrame(Mat img) 
+        static void AddFrame(Mat img)
             => CvInvoke.Rectangle(img, new Rectangle(Point.Empty, new Size(img.Width - 1, img.Height - 1)), new MCvScalar(120, 120, 120));
     }
 }

@@ -4,16 +4,13 @@ namespace OCR
 {
     internal struct Arrow
     {
-        public ICollection<LineSegment2D> Lines { get; }
+        public ICollection<LineSegment2D> Head { get; }
+        public ICollection<LineSegment2D> Tail { get; }
 
-        private Arrow(ICollection<LineSegment2D> lines)
+        public Arrow(ICollection<LineSegment2D> head, ICollection<LineSegment2D> tail)
         {
-            Lines = lines;
-        }
-
-        public static Arrow FromLines(ICollection<LineSegment2D> lines)
-        {
-            return new Arrow(lines);
+            Head = head;
+            Tail = tail;
         }
     }
 }
