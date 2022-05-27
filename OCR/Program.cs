@@ -3,6 +3,7 @@ using Emgu.CV;
 using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
 using Emgu.CV.Util;
+using OCR;
 using System.Drawing;
 
 Console.WriteLine("Hello, World!");
@@ -18,153 +19,112 @@ public class ImageProcessor
     {
         using UMat gray = new();
         using UMat cannyEdges = new();
-        using Mat triangleRectangleImage = new(img.Size, DepthType.Cv8U, 3); //image to draw triangles and rectangles on
-        using Mat circleImage = new(img.Size, DepthType.Cv8U, 3); //image to draw circles on
-        using Mat lineImage = new(img.Size, DepthType.Cv8U, 3); //image to drtaw lines on
+        using Mat rectangleImage = new(img.Size, DepthType.Cv8U, 3); //image to draw and rectangles on
+        using Mat lineImage = new(img.Size, DepthType.Cv8U, 3); //image to draw lines on
+        using Mat arrowImage = new(img.Size, DepthType.Cv8U, 3);
 
         if (img.NumberOfChannels < 3)
         {
             CvInvoke.CvtColor(img, img, ColorConversion.Gray2Bgr);
         }
 
-        //Convert the image to grayscale
         CvInvoke.CvtColor(img, gray, ColorConversion.Bgr2Gray);
 
-        //Remove noise
         CvInvoke.GaussianBlur(gray, gray, new Size(3, 3), 1);
-
         gray.Save("blured.png");
 
-        #region circle detection
         double cannyThreshold = 180.0;
-        double circleAccumulatorThreshold = 120;
-        CircleF[] circles = CvInvoke.HoughCircles(gray, HoughModes.Gradient, 2.0, 20.0, cannyThreshold,
-            circleAccumulatorThreshold, 5);
-        #endregion
-
-        #region Canny and edge detection
         double cannyThresholdLinking = 120.0;
         CvInvoke.Canny(gray, cannyEdges, cannyThreshold, cannyThresholdLinking);
-        LineSegment2D[] lines = CvInvoke.HoughLinesP(
-            cannyEdges,
-            1, //Distance resolution in pixel-related units
-            Math.PI / 45.0, //Angle resolution measured in radians.
-            20, //threshold
-            30, //min Line width
-            10); //gap between lines
-        #endregion
+        LineSegment2D[] lines = CvInvoke.HoughLinesP(cannyEdges, 1, Math.PI / 45.0, 10, 10, 20);
         cannyEdges.Save("canny.png");
 
-        #region Find triangles and rectangles
-        List<Triangle2DF> triangleList = new List<Triangle2DF>();
-        List<RotatedRect> boxList = new List<RotatedRect>(); //a box is a rotated rectangle
-        using (VectorOfVectorOfPoint contours = new VectorOfVectorOfPoint())
+        List<Arrow> headList = new List<Arrow>();
+        List<Arrow> tailList = new List<Arrow>();
+        List<RotatedRect> boxList = new List<RotatedRect>();
+        using var contours = new VectorOfVectorOfPoint();
+        CvInvoke.FindContours(cannyEdges, contours, null, RetrType.List, ChainApproxMethod.ChainApproxSimple);
+
+        for (var i = 0; i < contours.Size; i++)
         {
-            CvInvoke.FindContours(cannyEdges, contours, null, RetrType.List,
-                ChainApproxMethod.ChainApproxSimple);
-            int count = contours.Size;
-            for (int i = 0; i < count; i++)
+            using var contour = contours[i];
+            using var approxContour = new VectorOfPoint();
+            CvInvoke.ApproxPolyDP(contour, approxContour, CvInvoke.ArcLength(contour, true) * 0.05, true);
+
+            if (approxContour.Size == 4) //The contour has 4 vertices.
             {
-                using (VectorOfPoint contour = contours[i])
-                using (VectorOfPoint approxContour = new VectorOfPoint())
+                #region determine if all the angles in the contour are within [80, 100] degree
+                bool isRectangle = true;
+                LineSegment2D[] edges = PointCollection.PolyLine(approxContour.ToArray(), true);
+
+                for (int j = 0; j < edges.Length; j++)
                 {
-                    CvInvoke.ApproxPolyDP(contour, approxContour, CvInvoke.ArcLength(contour, true) * 0.05,
-                        true);
-                    if (CvInvoke.ContourArea(approxContour, false) > 250
-                    ) //only consider contours with area greater than 250
+                    double angle = Math.Abs(edges[(j + 1) % edges.Length].GetExteriorAngleDegree(edges[j]));
+                    if (angle < 80 || angle > 100)
                     {
-                        if (approxContour.Size == 3) //The contour has 3 vertices, it is a triangle
-                        {
-                            Point[] pts = approxContour.ToArray();
-                            triangleList.Add(new Triangle2DF(
-                                pts[0],
-                                pts[1],
-                                pts[2]
-                            ));
-                        }
-                        else if (approxContour.Size == 4) //The contour has 4 vertices.
-                        {
-                            #region determine if all the angles in the contour are within [80, 100] degree
-                            bool isRectangle = true;
-                            Point[] pts = approxContour.ToArray();
-                            LineSegment2D[] edges = PointCollection.PolyLine(pts, true);
-
-                            for (int j = 0; j < edges.Length; j++)
-                            {
-                                double angle = Math.Abs(
-                                    edges[(j + 1) % edges.Length].GetExteriorAngleDegree(edges[j]));
-                                if (angle < 80 || angle > 100)
-                                {
-                                    isRectangle = false;
-                                    break;
-                                }
-                            }
-
-                            #endregion
-
-                            if (isRectangle) boxList.Add(CvInvoke.MinAreaRect(approxContour));
-                        }
+                        isRectangle = false;
+                        break;
                     }
                 }
+
+                #endregion
+
+                if (isRectangle)
+                {
+                    boxList.Add(CvInvoke.MinAreaRect(approxContour));
+                }
+                else
+                {
+                    headList.Add(Arrow.FromLines(edges));
+                }
+            }
+            else if (approxContour.Size == 2)
+            {
+                LineSegment2D[] edges = PointCollection.PolyLine(approxContour.ToArray(), true);
+                tailList.Add(Arrow.FromLines(edges));
             }
         }
-        #endregion
 
-        #region draw triangles and rectangles
-        triangleRectangleImage.SetTo(new MCvScalar(0));
-        foreach (Triangle2DF triangle in triangleList)
-        {
-            CvInvoke.Polylines(triangleRectangleImage, Array.ConvertAll(triangle.GetVertices(), Point.Round),
-                true, new Bgr(Color.DarkBlue).MCvScalar, 2);
-        }
+        rectangleImage.SetTo(new MCvScalar(0));
 
         foreach (RotatedRect box in boxList)
         {
-            CvInvoke.Polylines(triangleRectangleImage, Array.ConvertAll(box.GetVertices(), Point.Round), true,
-                new Bgr(Color.DarkOrange).MCvScalar, 2);
+            CvInvoke.Polylines(rectangleImage, Array.ConvertAll(box.GetVertices(), Point.Round), true, new Bgr(Color.DarkOrange).MCvScalar, 2);
         }
 
-        //Drawing a light gray frame around the image
-        CvInvoke.Rectangle(triangleRectangleImage,
-            new Rectangle(Point.Empty,
-                new Size(triangleRectangleImage.Width - 1, triangleRectangleImage.Height - 1)),
-            new MCvScalar(120, 120, 120));
-        //Draw the labels
-        CvInvoke.PutText(triangleRectangleImage, "Triangles and Rectangles", new Point(20, 20),
-            FontFace.HersheyDuplex, 0.5, new MCvScalar(120, 120, 120));
-        #endregion
+        AddFrame(rectangleImage);
+        AddLabel(rectangleImage, "Rectangles");
 
-        #region draw circles
-        circleImage.SetTo(new MCvScalar(0));
-        foreach (CircleF circle in circles)
-            CvInvoke.Circle(circleImage, Point.Round(circle.Center), (int)circle.Radius,
-                new Bgr(Color.Brown).MCvScalar, 2);
 
-        //Drawing a light gray frame around the image
-        CvInvoke.Rectangle(circleImage,
-            new Rectangle(Point.Empty, new Size(circleImage.Width - 1, circleImage.Height - 1)),
-            new MCvScalar(120, 120, 120));
-        //Draw the labels
-        CvInvoke.PutText(circleImage, "Circles", new Point(20, 20), FontFace.HersheyDuplex, 0.5,
-            new MCvScalar(120, 120, 120));
-        #endregion
+        lineImage.SetTo(new MCvScalar(0));
+        foreach (var arrow in headList)
+            foreach (var line in arrow.Lines)
+                CvInvoke.Line(arrowImage, line.P1, line.P2, new Bgr(Color.Blue).MCvScalar, 2);
 
-        #region draw lines
+        foreach (var arrow in tailList)
+            foreach (var line in arrow.Lines)
+                CvInvoke.Line(arrowImage, line.P1, line.P2, new Bgr(Color.Blue).MCvScalar, 2);
+
+        AddFrame(arrowImage);
+        AddLabel(arrowImage, "Arrows");
+
         lineImage.SetTo(new MCvScalar(0));
         foreach (LineSegment2D line in lines)
             CvInvoke.Line(lineImage, line.P1, line.P2, new Bgr(Color.Green).MCvScalar, 2);
-        //Drawing a light gray frame around the image
-        CvInvoke.Rectangle(lineImage,
-            new Rectangle(Point.Empty, new Size(lineImage.Width - 1, lineImage.Height - 1)),
-            new MCvScalar(120, 120, 120));
-        //Draw the labels
-        CvInvoke.PutText(lineImage, "Lines", new Point(20, 20), FontFace.HersheyDuplex, 0.5,
-            new MCvScalar(120, 120, 120));
-        #endregion
+
+        AddFrame(lineImage);
+        AddLabel(lineImage, "Lines");
+
 
         Mat result = new Mat();
-        CvInvoke.VConcat(new Mat[] { img, triangleRectangleImage, circleImage, lineImage }, result);
+        CvInvoke.VConcat(new Mat[] { img, rectangleImage, arrowImage, lineImage }, result);
         return result;
+
+        static void AddLabel(Mat img, string label)
+            => CvInvoke.PutText(img, label, new Point(20, 20), FontFace.HersheyDuplex, 0.5, new MCvScalar(120, 120, 120));
+
+        static void AddFrame(Mat img) 
+            => CvInvoke.Rectangle(img, new Rectangle(Point.Empty, new Size(img.Width - 1, img.Height - 1)), new MCvScalar(120, 120, 120));
     }
 }
 
