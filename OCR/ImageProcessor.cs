@@ -23,17 +23,10 @@ public class ImageProcessor
         }
 
         CvInvoke.CvtColor(img, gray, ColorConversion.Bgr2Gray);
-
         CvInvoke.GaussianBlur(gray, gray, new Size(3, 3), 1);
-        gray.Save("blured.png");
-
-        double cannyThreshold = 180.0;
-        double cannyThresholdLinking = 120.0;
-        CvInvoke.Canny(gray, cannyEdges, cannyThreshold, cannyThresholdLinking);
-        cannyEdges.Save("canny.png");
+        CvInvoke.Canny(gray, cannyEdges, threshold1: 180.0, threshold2: 120.0);
 
         List<LineSegment2D[]> potentialTailList = new List<LineSegment2D[]>();
-        List<LineSegment2D[]> potentialHeadList = new List<LineSegment2D[]>();
         List<RotatedRect> boxList = new List<RotatedRect>();
         List<Arrow> arrowList = new List<Arrow>();
 
@@ -63,45 +56,40 @@ public class ImageProcessor
 
             CvInvoke.ApproxPolyDP(contour, approxContour, CvInvoke.ArcLength(contour, true) * 0.05, true);
             var area = CvInvoke.ContourArea(contour);
-            if (area > 25)
+            if (area > 10)
             {
                 if (approxContour.Size > 2)
                 {
                     LineSegment2D[] edges = PointCollection.PolyLine(approxContour.ToArray(), true);
+                    bool isRectangle = true;
 
-                    if (approxContour.Size == 4)
+                    for (int j = 0; j < edges.Length; j++)
                     {
-                        bool isRectangle = true;
-
-                        for (int j = 0; j < edges.Length; j++)
+                        double angle = Math.Abs(edges[(j + 1) % edges.Length].GetExteriorAngleDegree(edges[j]));
+                        if (angle < 88 || angle > 92)
                         {
-                            double angle = Math.Abs(edges[(j + 1) % edges.Length].GetExteriorAngleDegree(edges[j]));
-                            if (angle < 88 || angle > 92)
+                            isRectangle = false;
+                            break;
+                        }
+                    }
+
+                    if (isRectangle)
+                    {
+                        boxList.Add(CvInvoke.MinAreaRect(approxContour));
+                    }
+                    else
+                    {
+                        foreach (var potentialTail in potentialTailList)
+                        {
+                            var distanceP1 = CvInvoke.PointPolygonTest(contour, potentialTail.First().P1, true);
+                            var distanceP2 = CvInvoke.PointPolygonTest(contour, potentialTail.First().P2, true);
+
+                            if (Math.Min(Math.Abs(distanceP1), Math.Abs(distanceP2)) <= 2)
                             {
-                                isRectangle = false;
-                                break;
+                                arrowList.Add(new Arrow(edges, potentialTail));
                             }
                         }
-
-                        if (isRectangle)
-                        {
-                            boxList.Add(CvInvoke.MinAreaRect(approxContour));
-                        }
                     }
-
-                    potentialHeadList.Add(edges);
-
-                    foreach (var potentialTail in potentialTailList)
-                    {
-                        var distanceP1 = CvInvoke.PointPolygonTest(contour, potentialTail.First().P1, true);
-                        var distanceP2 = CvInvoke.PointPolygonTest(contour, potentialTail.First().P2, true);
-
-                        if (Math.Min(Math.Abs(distanceP1), Math.Abs(distanceP2)) <= 2)
-                        {
-                            arrowList.Add(new Arrow(edges, potentialTail));
-                        }
-                    }
-
                 }
             }
         }
