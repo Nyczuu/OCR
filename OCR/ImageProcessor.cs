@@ -12,11 +12,9 @@ public class ImageProcessor
     {
         using UMat gray = new();
         using UMat cannyEdges = new();
-        using Mat rectangleImage = new(img.Size, DepthType.Cv8U, 3); //image to draw and rectangles on
-        using Mat lineImage = new(img.Size, DepthType.Cv8U, 3); //image to draw lines on
+        using Mat rectangleImage = new(img.Size, DepthType.Cv8U, 3);
         using Mat arrowImage = new(img.Size, DepthType.Cv8U, 3);
         rectangleImage.SetTo(new MCvScalar(0));
-        lineImage.SetTo(new MCvScalar(0));
         arrowImage.SetTo(new MCvScalar(0));
 
         if (img.NumberOfChannels < 3)
@@ -26,13 +24,12 @@ public class ImageProcessor
 
         CvInvoke.CvtColor(img, gray, ColorConversion.Bgr2Gray);
 
-        CvInvoke.GaussianBlur(gray, gray, new Size(3, 3), 1.5);
+        CvInvoke.GaussianBlur(gray, gray, new Size(3, 3), 1);
         gray.Save("blured.png");
 
         double cannyThreshold = 180.0;
         double cannyThresholdLinking = 120.0;
         CvInvoke.Canny(gray, cannyEdges, cannyThreshold, cannyThresholdLinking);
-        LineSegment2D[] lines = CvInvoke.HoughLinesP(cannyEdges, 1, Math.PI / 45.0, 10, 10, 20);
         cannyEdges.Save("canny.png");
 
         List<LineSegment2D[]> potentialTailList = new List<LineSegment2D[]>();
@@ -92,24 +89,19 @@ public class ImageProcessor
                         }
                     }
 
-                    if (edges.Any(x => x.Length >= 10))
-                    {
-                        potentialHeadList.Add(edges);
-                    }
+                    potentialHeadList.Add(edges);
 
-                    else
+                    foreach (var potentialTail in potentialTailList)
                     {
-                        foreach (var potentialTail in potentialTailList)
+                        var distanceP1 = CvInvoke.PointPolygonTest(contour, potentialTail.First().P1, true);
+                        var distanceP2 = CvInvoke.PointPolygonTest(contour, potentialTail.First().P2, true);
+
+                        if (Math.Min(Math.Abs(distanceP1), Math.Abs(distanceP2)) <= 2)
                         {
-                            var distanceP1 = CvInvoke.PointPolygonTest(contour, potentialTail.First().P1, true);
-                            var distanceP2 = CvInvoke.PointPolygonTest(contour, potentialTail.First().P2, true);
-
-                            if (Math.Min(Math.Abs(distanceP1), Math.Abs(distanceP2)) <= 2)
-                            {
-                                arrowList.Add(new Arrow(edges, potentialTail));
-                            }
+                            arrowList.Add(new Arrow(edges, potentialTail));
                         }
                     }
+
                 }
             }
         }
@@ -121,7 +113,6 @@ public class ImageProcessor
 
         AddFrame(rectangleImage);
         AddLabel(rectangleImage, "Rectangles");
-
 
         foreach (var arrow in arrowList)
         {
@@ -135,15 +126,8 @@ public class ImageProcessor
         AddFrame(arrowImage);
         AddLabel(arrowImage, "Arrows");
 
-        foreach (LineSegment2D line in lines)
-            CvInvoke.Line(lineImage, line.P1, line.P2, new Bgr(Color.Green).MCvScalar, 2);
-
-        AddFrame(lineImage);
-        AddLabel(lineImage, "Lines");
-
-
         Mat result = new Mat();
-        CvInvoke.VConcat(new Mat[] { img, rectangleImage, arrowImage, lineImage }, result);
+        CvInvoke.VConcat(new Mat[] { img, rectangleImage, arrowImage }, result);
         return result;
 
         static void AddLabel(Mat img, string label)

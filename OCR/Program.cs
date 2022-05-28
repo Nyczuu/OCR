@@ -3,7 +3,7 @@ using Emgu.CV;
 using Emgu.CV.CvEnum;
 
 var processor = new ImageProcessor();
-var testData = Directory.GetFiles("TestData").Where(x => !x.Contains("_processed") && x.Contains("FourItems_Connected"));
+var testData = Directory.GetFiles("TestData").Where(x => !x.Contains("_processed"));
 
 foreach (var file in testData)
 {
