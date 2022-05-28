@@ -1,13 +1,14 @@
 ﻿// See https://aka.ms/new-console-template for more information
-using Emgu.CV;
-using Emgu.CV.CvEnum;
+using OCR.Services;
 
-var processor = new ImageProcessor();
-var testData = Directory.GetFiles("TestData").Where(x => !x.Contains("_processed"));
-
-foreach (var file in testData)
+internal class Program
 {
-    using var img = CvInvoke.Imread(file, ImreadModes.AnyColor);
-    var processedImg = processor.ProcessImage(img);
-    processedImg.Save(file.Replace(".png", "_processed.png"));
+    static void Main(string[] args)
+    {
+        var processor = new ImageProcessor(new DrawingService(), new ShapeService());
+        var testData = Directory.GetFiles("TestData").Where(x => !x.Contains("_processed"));
+
+        foreach (var file in testData)
+            processor.ProcessImage(file);
+    }
 }

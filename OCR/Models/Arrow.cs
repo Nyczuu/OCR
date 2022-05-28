@@ -2,7 +2,7 @@
 
 namespace OCR
 {
-    internal struct Arrow
+    public struct Arrow
     {
         public ICollection<LineSegment2D> Head { get; }
         public ICollection<LineSegment2D> Tail { get; }
