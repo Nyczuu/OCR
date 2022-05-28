@@ -5,10 +5,20 @@ internal class Program
 {
     static void Main(string[] args)
     {
+        var path = "TestData";
+        if (args.Any())
+        {
+            path = args.First();
+        }
+
         var processor = new ImageProcessor(new DrawingService(), new ShapeService());
-        var testData = Directory.GetFiles("TestData").Where(x => !x.Contains("_processed"));
+        var coordinatesService = new CoordinatesService();
+        var testData = Directory.GetFiles(path).Where(x => !x.Contains("_processed"));
 
         foreach (var file in testData)
-            processor.ProcessImage(file);
+        {
+            var result = processor.ProcessImage(file);
+            coordinatesService.ExtractCoordtinates(result);
+        }
     }
 }

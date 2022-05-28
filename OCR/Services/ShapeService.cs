@@ -1,6 +1,7 @@
 ﻿using Emgu.CV;
 using Emgu.CV.Structure;
 using Emgu.CV.Util;
+using OCR.Services.Interfaces;
 
 namespace OCR.Services
 {

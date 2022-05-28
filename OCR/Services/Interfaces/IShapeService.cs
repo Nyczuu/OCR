@@ -1,7 +1,7 @@
 ﻿using Emgu.CV.Structure;
 using Emgu.CV.Util;
 
-namespace OCR.Services
+namespace OCR.Services.Interfaces
 {
     public interface IShapeService
     {

@@ -4,7 +4,8 @@ using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
 using Emgu.CV.Util;
 using OCR;
-using OCR.Services;
+using OCR.Models;
+using OCR.Services.Interfaces;
 using System.Drawing;
 
 public class ImageProcessor
@@ -18,7 +19,7 @@ public class ImageProcessor
         _shapeService = shapeService;
     }
 
-    public void ProcessImage(string imgPath)
+    public ProcessedImage ProcessImage(string imgPath)
     {
         using var img = CvInvoke.Imread(imgPath, ImreadModes.AnyColor);
         using UMat gray = new();
@@ -38,9 +39,11 @@ public class ImageProcessor
         using var contours = new VectorOfVectorOfPoint();
         CvInvoke.FindContours(cannyEdges, contours, null, RetrType.List, ChainApproxMethod.ChainApproxSimple);
 
-        HandleRectangles(rectangleImage, contours);
-        HandleArrows(arrowImage, contours);
+        var rectangles = HandleRectangles(rectangleImage, contours);
+        var arrows = HandleArrows(arrowImage, contours);
         HandleResult(imgPath, img, rectangleImage, arrowImage);
+
+        return new ProcessedImage(rectangles, arrows);
     }
 
     private void HandleResult(string imgPath, Mat img, Mat rectangleImage, Mat arrowImage)
@@ -50,7 +53,7 @@ public class ImageProcessor
         result.Save(imgPath.Replace(".png", "_processed.png"));
     }
 
-    private void HandleRectangles(Mat img, VectorOfVectorOfPoint contours)
+    private ICollection<RotatedRect> HandleRectangles(Mat img, VectorOfVectorOfPoint contours)
     {
         var boxList = _shapeService.FindBoxes(contours);
 
@@ -59,9 +62,11 @@ public class ImageProcessor
 
         _drawingService.DrawFrame(img);
         _drawingService.DrawLabel(img, "Rectangles");
+
+        return boxList;
     }
 
-    private void HandleArrows(Mat img, VectorOfVectorOfPoint contours)
+    private ICollection<Arrow> HandleArrows(Mat img, VectorOfVectorOfPoint contours)
     {
         var arrowList = _shapeService.FindArrows(contours);
 
@@ -72,6 +77,8 @@ public class ImageProcessor
 
         _drawingService.DrawFrame(img);
         _drawingService.DrawLabel(img, "Arrows");
+
+        return arrowList;
     }
 }
 

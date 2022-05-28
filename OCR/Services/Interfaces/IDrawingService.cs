@@ -1,7 +1,7 @@
 ﻿using Emgu.CV;
 using Emgu.CV.Structure;
 
-namespace OCR.Services
+namespace OCR.Services.Interfaces
 {
     public interface IDrawingService
     {
