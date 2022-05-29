@@ -4,6 +4,7 @@ using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
 using Emgu.CV.Util;
 using OCR;
+using OCR.Extensions;
 using OCR.Models;
 using OCR.Services.Interfaces;
 using System.Drawing;
@@ -47,7 +48,7 @@ public class ImageProcessor
 
     private void FindEdges(UMat input, UMat output, string imgPath)
     {
-        var canyPath = imgPath.Replace(".png", "_canny.png");
+        var canyPath = imgPath.AddFileNameSuffix("canny");
         CvInvoke.Canny(input, output, threshold1: 180.0, threshold2: 120.0);
         output.Save(canyPath);
         Console.WriteLine($"Created Canny edges image: `{canyPath}`");
@@ -55,7 +56,7 @@ public class ImageProcessor
 
     private void BlurImage(UMat img, string imgPath)
     {
-        var bluredPath = imgPath.Replace(".png", "_blured.png");
+        var bluredPath = imgPath.AddFileNameSuffix("blured");
         CvInvoke.GaussianBlur(img, img, new Size(3, 3), 1);
         img.Save(bluredPath);
         Console.WriteLine($"Created blured image: `{bluredPath}`");
@@ -78,7 +79,7 @@ public class ImageProcessor
 
     private void HandleResult(string imgPath, Mat img, Mat rectangleImage, Mat arrowImage)
     {
-        var processedPath = imgPath.Replace(".png", "_processed.png");
+        var processedPath = imgPath.AddFileNameSuffix("processed");
         using var result = new Mat();
         CvInvoke.VConcat(new Mat[] { img, rectangleImage, arrowImage }, result);
         result.Save(processedPath);

@@ -2,7 +2,7 @@
 {
     public static class StringExtensions
     {
-        public static string OverrideExtension(this string fileNameWithExtension, string additionalPart)
+        public static string AddFileNameSuffix(this string fileNameWithExtension, string additionalPart)
         {
             if (!fileNameWithExtension.Contains('.'))
             {
