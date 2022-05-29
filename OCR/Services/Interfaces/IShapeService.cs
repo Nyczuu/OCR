@@ -5,7 +5,7 @@ namespace OCR.Services.Interfaces
 {
     public interface IShapeService
     {
-        ICollection<RotatedRect> FindBoxes(VectorOfVectorOfPoint contours);
+        ICollection<RotatedRect> FindRectangles(VectorOfVectorOfPoint contours);
         ICollection<Arrow> FindArrows(VectorOfVectorOfPoint contours);
     }
 }

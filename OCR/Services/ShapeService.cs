@@ -62,7 +62,7 @@ namespace OCR.Services
             return arrowList;
         }
 
-        public ICollection<RotatedRect> FindBoxes(VectorOfVectorOfPoint contours)
+        public ICollection<RotatedRect> FindRectangles(VectorOfVectorOfPoint contours)
         {
             List<RotatedRect> rectangles = new List<RotatedRect>();
 

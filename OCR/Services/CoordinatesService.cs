@@ -7,7 +7,7 @@ namespace OCR.Services
     {
         public void ExtractCoordtinates(ProcessedImage image)
         {
-            throw new NotImplementedException();
+            
         }
     }
 }

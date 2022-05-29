@@ -21,6 +21,8 @@ public class ImageProcessor
 
     public ProcessedImage ProcessImage(string imgPath)
     {
+        Console.WriteLine($"Processing: `{imgPath}`");
+
         using var img = CvInvoke.Imread(imgPath, ImreadModes.AnyColor);
         using UMat gray = new();
         using UMat cannyEdges = new();
@@ -29,12 +31,9 @@ public class ImageProcessor
         rectangleImage.SetTo(new MCvScalar(0));
         arrowImage.SetTo(new MCvScalar(0));
 
-        if (img.NumberOfChannels < 3)
-            CvInvoke.CvtColor(img, img, ColorConversion.Gray2Bgr);
-
-        CvInvoke.CvtColor(img, gray, ColorConversion.Bgr2Gray);
-        CvInvoke.GaussianBlur(gray, gray, new Size(3, 3), 1);
-        CvInvoke.Canny(gray, cannyEdges, threshold1: 180.0, threshold2: 120.0);
+        AlignColors(img, gray);
+        BlurImage(gray, imgPath);
+        FindEdges(gray, cannyEdges, imgPath);
 
         using var contours = new VectorOfVectorOfPoint();
         CvInvoke.FindContours(cannyEdges, contours, null, RetrType.List, ChainApproxMethod.ChainApproxSimple);
@@ -46,24 +45,60 @@ public class ImageProcessor
         return new ProcessedImage(rectangles, arrows);
     }
 
+    private void FindEdges(UMat input, UMat output, string imgPath)
+    {
+        var canyPath = imgPath.Replace(".png", "_canny.png");
+        CvInvoke.Canny(input, output, threshold1: 180.0, threshold2: 120.0);
+        output.Save(canyPath);
+        Console.WriteLine($"Created Canny edges image: `{canyPath}`");
+    }
+
+    private void BlurImage(UMat img, string imgPath)
+    {
+        var bluredPath = imgPath.Replace(".png", "_blured.png");
+        CvInvoke.GaussianBlur(img, img, new Size(3, 3), 1);
+        img.Save(bluredPath);
+        Console.WriteLine($"Created blured image: `{bluredPath}`");
+    }
+
+    private void AlignColors(Mat img, UMat gray)
+    {
+        if (img.NumberOfChannels < 3)
+        {
+            Console.WriteLine("Detected gray scale image.");
+            CvInvoke.CvtColor(img, img, ColorConversion.Gray2Bgr);
+
+        }
+        else
+        {
+            Console.WriteLine("Detected color image.");
+        }
+
+        CvInvoke.CvtColor(img, gray, ColorConversion.Bgr2Gray);
+    }
+
     private void HandleResult(string imgPath, Mat img, Mat rectangleImage, Mat arrowImage)
     {
+        var processedPath = imgPath.Replace(".png", "_processed.png");
         using var result = new Mat();
         CvInvoke.VConcat(new Mat[] { img, rectangleImage, arrowImage }, result);
-        result.Save(imgPath.Replace(".png", "_processed.png"));
+        result.Save(processedPath);
+        Console.WriteLine($"Created processed image: `{processedPath}`");
     }
 
     private ICollection<RotatedRect> HandleRectangles(Mat img, VectorOfVectorOfPoint contours)
     {
-        var boxList = _shapeService.FindBoxes(contours);
+        var rectangleList = _shapeService.FindRectangles(contours);
 
-        foreach (RotatedRect box in boxList)
-            _drawingService.DrawRectangle(img, box);
+        foreach (RotatedRect rectangle in rectangleList)
+            _drawingService.DrawRectangle(img, rectangle);
 
         _drawingService.DrawFrame(img);
         _drawingService.DrawLabel(img, "Rectangles");
 
-        return boxList;
+        Console.WriteLine($"Found {rectangleList.Count} rectangles.");
+
+        return rectangleList;
     }
 
     private ICollection<Arrow> HandleArrows(Mat img, VectorOfVectorOfPoint contours)
@@ -77,6 +112,8 @@ public class ImageProcessor
 
         _drawingService.DrawFrame(img);
         _drawingService.DrawLabel(img, "Arrows");
+
+        Console.WriteLine($"Found {arrowList.Count} arrows.");
 
         return arrowList;
     }

@@ -11,6 +11,7 @@ internal class Program
             path = args.First();
         }
 
+        Console.WriteLine($"Selected folder: `{path}`.");
         var processor = new ImageProcessor(new DrawingService(), new ShapeService());
         var coordinatesService = new CoordinatesService();
         var testData = Directory.GetFiles(path).Where(x => !x.Contains("_processed"));
@@ -19,6 +20,7 @@ internal class Program
         {
             var result = processor.ProcessImage(file);
             coordinatesService.ExtractCoordtinates(result);
+            Console.WriteLine();
         }
     }
 }
