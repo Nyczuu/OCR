@@ -22,10 +22,8 @@ internal class Program
             var detectedObjects = processor.ProcessImage(localCopyPath);
 
             var coordinates = coordinatesService.ExtractCoordtinates(detectedObjects);
-            var coordinatesSerialzied = JsonSerializer.Serialize(coordinates);
-            var coordinatesFileName = localCopyPath.AddFileNameSuffix("coordinates", "json");
 
-            File.WriteAllText(coordinatesFileName, coordinatesSerialzied);
+            File.WriteAllText(localCopyPath.AddFileNameSuffix("coordinates", "json"), JsonSerializer.Serialize(coordinates));
 
             Console.WriteLine();
         }

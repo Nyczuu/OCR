@@ -11,12 +11,7 @@ namespace OCR.Services
 
             foreach (var rectangle in image.Rectangles)
             {
-                var center = new PointModel(rectangle.Center.X, rectangle.Center.Y);
-                PointModel topLeft = null;
-                PointModel topRight = null;
-                PointModel bottomLeft = null;
-                PointModel bottomRight = null;
-                result.RectangleModels.Add(new RectangleModel(center, topLeft, topRight, bottomLeft, bottomRight));
+                result.RectangleModels.Add(RectangleModel.FromRotatedRect(rectangle));
             }
 
             return result;
