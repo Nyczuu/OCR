@@ -4,6 +4,6 @@ namespace OCR.Services.Interfaces
 {
     public interface ICoordinatesService
     {
-        void ExtractCoordtinates(ProcessedImage image);
+        ProcessedImageModel ExtractCoordtinates(ProcessedImage image);
     }
 }

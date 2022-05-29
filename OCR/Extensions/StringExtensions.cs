@@ -2,16 +2,18 @@
 {
     public static class StringExtensions
     {
-        public static string AddFileNameSuffix(this string fileNameWithExtension, string additionalPart)
+        public static string AddFileNameSuffix(this string fileName, string additionalPart, string? newExtension = null)
         {
-            if (!fileNameWithExtension.Contains('.'))
+            var extension = fileName.Split('.', StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+            var fileNameWithoutExtension = fileName.Replace($".{extension}", string.Empty);
+            var fileNameWithSuffix = $"{fileNameWithoutExtension}_{additionalPart}";
+
+            if(extension == null && newExtension == null)
             {
-                throw new ArgumentException($"{nameof(fileNameWithExtension)} does not contain extension");
+                return fileNameWithSuffix;
             }
 
-            var extension = fileNameWithExtension.Split('.', StringSplitOptions.RemoveEmptyEntries).Last();
-
-            return fileNameWithExtension.Replace($".{extension}", $"_{additionalPart}.{extension}");
+            return $"{fileNameWithSuffix}.{newExtension ?? extension}";
         } 
     }
 }

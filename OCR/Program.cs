@@ -1,6 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using OCR.Extensions;
 using OCR.Services;
+using System.Text.Json;
 
 internal class Program
 {
@@ -18,9 +19,13 @@ internal class Program
         {
             var localCopyPath = CreateLocalCopy(runDirectory, file);
 
-            var result = processor.ProcessImage(localCopyPath);
+            var detectedObjects = processor.ProcessImage(localCopyPath);
 
-            coordinatesService.ExtractCoordtinates(result);
+            var coordinates = coordinatesService.ExtractCoordtinates(detectedObjects);
+            var coordinatesSerialzied = JsonSerializer.Serialize(coordinates);
+            var coordinatesFileName = localCopyPath.AddFileNameSuffix("coordinates", "json");
+
+            File.WriteAllText(coordinatesFileName, coordinatesSerialzied);
 
             Console.WriteLine();
         }

@@ -1,6 +1,6 @@
 ﻿namespace OCR.Models
 {
-    internal class PointModel
+    public class PointModel
     {
         public PointModel(double x, double y)
         {

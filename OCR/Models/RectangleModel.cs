@@ -1,6 +1,6 @@
 ﻿namespace OCR.Models
 {
-    internal class RectangleModel
+    public class RectangleModel
     {
         public RectangleModel(PointModel center, PointModel topLeft, PointModel topRight, PointModel bottomLeft, PointModel bottomRight)
         {
