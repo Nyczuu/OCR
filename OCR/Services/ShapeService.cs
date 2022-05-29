@@ -60,9 +60,11 @@ namespace OCR.Services
                 }
             }
 
-            Console.WriteLine($"Found {arrowList.Count} arrows.");
+            var result = RemoveDuplicates(arrowList);
 
-            return arrowList;
+            Console.WriteLine($"Found {result.Count} arrows.");
+
+            return result;
         }
 
         public ICollection<RotatedRect> FindRectangles(VectorOfVectorOfPoint contours)
@@ -89,14 +91,16 @@ namespace OCR.Services
                 }
             }
 
-            Console.WriteLine($"Found {rectangles.Count} rectangles.");
+            var result = RemoveDuplicates(rectangles);
 
-            return RemoveDuplicates(rectangles);
+            Console.WriteLine($"Found {result.Count} rectangles.");
+
+            return result;
         }
 
         private List<RotatedRect> RemoveDuplicates(List<RotatedRect> rectangles)
         {
-            var recsWithApproxCenters = rectangles.GroupBy(x => x.Center, new IsApproximatelyEqual()).ToList();
+            var recsWithApproxCenters = rectangles.GroupBy(x => x.Center, new IsPointFApproximatelyEqual()).ToList();
             var deduplicatedList = new List<RotatedRect>();
 
             foreach (var grp in recsWithApproxCenters)
@@ -107,6 +111,19 @@ namespace OCR.Services
                 var biggestSize = grp.OrderByDescending(x => x.Size.Height).OrderByDescending(x => x.Size.Width).First().Size;
 
                 deduplicatedList.Add(new RotatedRect(new PointF(averageCenterX, averageCenterY), biggestSize, averageAngle));
+            }
+
+            return deduplicatedList;
+        }
+
+        private List<Arrow> RemoveDuplicates(List<Arrow> arrows)
+        {
+            var arrowsWithApproxBegins = arrows.GroupBy(x => x.TailBegin, new IsPointApproximatelyEqual()).ToList();
+            var deduplicatedList = new List<Arrow>();
+
+            foreach (var grp in arrowsWithApproxBegins)
+            {
+                deduplicatedList.Add(grp.First());
             }
 
             return deduplicatedList;
