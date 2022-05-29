@@ -43,7 +43,7 @@ namespace OCR.Models
             return new RectangleModel(center, GetTopLeft(vertices), GetTopRight(vertices), GetBottomLeft(vertices), GetBottomRight(vertices));
         }
 
-        public ICollection<PointF> HookingPoints => _hookingPoints;
+        public ICollection<PointF> HookingPoints() => _hookingPoints;
 
         private static PointF GetTopLeft(PointF[] vertices)
         {

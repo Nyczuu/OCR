@@ -33,7 +33,8 @@ namespace OCR.Services
 
             foreach (var rectangle in rectangles)
             {
-                var lowestEndDist = rectangle.HookingPoints.Min(p => PointHelper.MeasureDistance(p, arrow.TailEnd));
+                var hookingPoints = rectangle.HookingPoints();
+                var lowestEndDist = hookingPoints.Min(p => PointHelper.MeasureDistance(p, arrow.TailEnd));
 
                 if (lowestEndDist < closestsEndDist)
                 {
@@ -41,9 +42,9 @@ namespace OCR.Services
                     closestEndId = rectangle.Id;
                 }
 
-                var lowestBeginDist = rectangle.HookingPoints.Min(p => PointHelper.MeasureDistance(p, arrow.TailBegin));
+                var lowestBeginDist = hookingPoints.Min(p => PointHelper.MeasureDistance(p, arrow.TailBegin));
 
-                if (lowestBeginDist < closestsEndDist)
+                if (lowestBeginDist < closestsBeginDist)
                 {
                     closestsBeginDist = lowestBeginDist;
                     closestsBeginId = rectangle.Id;

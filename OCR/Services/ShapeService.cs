@@ -52,7 +52,7 @@ namespace OCR.Services
 
                                 if (Math.Min(Math.Abs(distanceP1), Math.Abs(distanceP2)) <= 2)
                                 {
-                                    arrowList.Add(new Arrow(edges, potentialTail));
+                                    arrowList.Add(new Arrow(edges.Where(x => x.Length < 20).ToArray(), potentialTail));
                                 }
                             }
                         }
