@@ -1,5 +1,7 @@
-﻿using OCR.Models;
+﻿using Emgu.CV.Structure;
+using OCR.Models;
 using OCR.Services.Interfaces;
+using System.Drawing;
 
 namespace OCR.Services
 {

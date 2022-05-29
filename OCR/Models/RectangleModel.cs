@@ -5,6 +5,8 @@ namespace OCR.Models
 {
     public class RectangleModel
     {
+        private ICollection<PointModel> _hookingPoints;
+
         public RectangleModel(PointModel center, PointModel topLeft, PointModel topRight, PointModel bottomLeft, PointModel bottomRight)
         {
             Id = Guid.NewGuid();
@@ -13,10 +15,21 @@ namespace OCR.Models
             TopRight = topRight;
             BottomLeft = bottomLeft;
             BottomRight = bottomRight;
+
+            CenterTop = PointHelper.PointBetween(topLeft, topRight);
+            CenterBottom = PointHelper.PointBetween(bottomLeft, bottomRight);
+            CenterLeft = PointHelper.PointBetween(topLeft, bottomLeft);
+            CenterRight = PointHelper.PointBetween(topRight, bottomRight);
+
+            _hookingPoints = new List<PointModel> { TopLeft, CenterTop, TopRight, CenterLeft, CenterRight, BottomLeft, CenterBottom, BottomRight };
         }
 
         public Guid Id { get; }
         public PointModel Center { get; }
+        public PointModel CenterTop { get; }
+        public PointModel CenterBottom { get; }
+        public PointModel CenterLeft { get; }
+        public PointModel CenterRight { get; }
         public PointModel TopLeft { get; }
         public PointModel TopRight { get; }
         public PointModel BottomLeft { get; }
@@ -29,6 +42,8 @@ namespace OCR.Models
 
             return new RectangleModel(center, GetTopLeft(vertices), GetTopRight(vertices), GetBottomLeft(vertices), GetBottomRight(vertices));
         }
+
+        public ICollection<PointModel> HookingPoints => _hookingPoints;
 
         private static PointModel GetTopLeft(PointF[] vertices)
         {
