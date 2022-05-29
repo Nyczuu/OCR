@@ -9,8 +9,8 @@ namespace OCR
         public ICollection<LineSegment2D> Head { get; }
         public LineSegment2D Tail { get; }
 
-        public Point TailBegin { get; }
-        public Point TailEnd { get; }
+        public PointF TailBegin { get; }
+        public PointF TailEnd { get; }
 
         public Arrow(ICollection<LineSegment2D> head, ICollection<LineSegment2D> tail)
         {

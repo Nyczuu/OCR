@@ -118,7 +118,7 @@ namespace OCR.Services
 
         private List<Arrow> RemoveDuplicates(List<Arrow> arrows)
         {
-            var arrowsWithApproxBegins = arrows.GroupBy(x => x.TailBegin, new IsPointApproximatelyEqual()).ToList();
+            var arrowsWithApproxBegins = arrows.GroupBy(x => x.TailEnd, new IsPointFApproximatelyEqual()).ToList();
             var deduplicatedList = new List<Arrow>();
 
             foreach (var grp in arrowsWithApproxBegins)

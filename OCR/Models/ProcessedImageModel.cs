@@ -2,6 +2,7 @@
 {
     public class ProcessedImageModel
     {
-        public ICollection<RectangleModel> RectangleModels { get; } = new List<RectangleModel>();
+        public ICollection<RectangleModel> Rectangles { get; } = new List<RectangleModel>();
+        public ICollection<RelationModel> Relations { get; } = new List<RelationModel>();
     }
 }
