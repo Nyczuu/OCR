@@ -1,4 +1,5 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using OCR.Extensions;
 using OCR.Services;
 
 internal class Program
@@ -14,11 +15,16 @@ internal class Program
         Console.WriteLine($"Selected folder: `{path}`.");
         var processor = new ImageProcessor(new DrawingService(), new ShapeService());
         var coordinatesService = new CoordinatesService();
-        var testData = Directory.GetFiles(path).Where(x => !x.Contains("_processed"));
+        var testData = Directory.GetFiles(path);
+        var runDirectory = Directory.CreateDirectory(Path.Combine(path, Guid.NewGuid().ToString()));
 
         foreach (var file in testData)
         {
-            var result = processor.ProcessImage(file);
+            var fileDir = Directory.CreateDirectory(Path.Combine(runDirectory.FullName, Path.GetFileNameWithoutExtension(file)));
+            var workingCopyPath = Path.Combine(fileDir.FullName, Path.GetFileName(file).OverrideExtension("original"));
+            File.Copy(file, workingCopyPath);
+
+            var result = processor.ProcessImage(workingCopyPath);
             coordinatesService.ExtractCoordtinates(result);
             Console.WriteLine();
         }
