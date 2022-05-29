@@ -2,6 +2,7 @@
 using Emgu.CV.Structure;
 using Emgu.CV.Util;
 using OCR.Services.Interfaces;
+using System.Drawing;
 
 namespace OCR.Services
 {
@@ -41,7 +42,7 @@ namespace OCR.Services
                     if (approxContour.Size > 2)
                     {
                         var edges = PointCollection.PolyLine(approxContour.ToArray(), true);
-                        
+
                         if (!IsRectangle(edges))
                         {
                             foreach (var potentialTail in potentialTailList)
@@ -79,7 +80,7 @@ namespace OCR.Services
                     if (approxContour.Size == 4)
                     {
                         var edges = PointCollection.PolyLine(approxContour.ToArray(), true);
-                        
+
                         if (IsRectangle(edges))
                         {
                             rectangles.Add(CvInvoke.MinAreaRect(approxContour));
@@ -90,7 +91,25 @@ namespace OCR.Services
 
             Console.WriteLine($"Found {rectangles.Count} rectangles.");
 
-            return rectangles;
+            return RemoveDuplicates(rectangles);
+        }
+
+        private List<RotatedRect> RemoveDuplicates(List<RotatedRect> rectangles)
+        {
+            var recsWithApproxCenters = rectangles.GroupBy(x => x.Center, new IsApproximatelyEqual()).ToList();
+            var deduplicatedList = new List<RotatedRect>();
+
+            foreach (var grp in recsWithApproxCenters)
+            {
+                var averageCenterX = grp.Average(rect => rect.Center.X);
+                var averageCenterY = grp.Average(rect => rect.Center.Y);
+                var averageAngle = grp.Average(rect => rect.Angle);
+                var biggestSize = grp.OrderByDescending(x => x.Size.Height).OrderByDescending(x => x.Size.Width).First().Size;
+
+                deduplicatedList.Add(new RotatedRect(new PointF(averageCenterX, averageCenterY), biggestSize, averageAngle));
+            }
+
+            return deduplicatedList;
         }
 
         private static bool IsRectangle(LineSegment2D[] edges)
