@@ -5,9 +5,7 @@ namespace OCR.Services.Interfaces
 {
     public interface IDrawingService
     {
-        void DrawLabel(Mat img, string label);
-        void DrawFrame(Mat img);
-        void DrawRectangle(Mat img, RotatedRect rectangle);
-        void DrawArrow(Mat img, Arrow arrow);
+        void DrawRectangles(Mat img, ICollection<RotatedRect> rectangleList);
+        void DrawArrows(Mat img, ICollection<Arrow> arrowList);
     }
 }

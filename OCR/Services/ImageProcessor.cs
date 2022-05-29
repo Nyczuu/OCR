@@ -67,7 +67,6 @@ public class ImageProcessor
         {
             Console.WriteLine("Detected gray scale image.");
             CvInvoke.CvtColor(img, img, ColorConversion.Gray2Bgr);
-
         }
         else
         {
@@ -89,14 +88,7 @@ public class ImageProcessor
     private ICollection<RotatedRect> HandleRectangles(Mat img, VectorOfVectorOfPoint contours)
     {
         var rectangleList = _shapeService.FindRectangles(contours);
-
-        foreach (RotatedRect rectangle in rectangleList)
-            _drawingService.DrawRectangle(img, rectangle);
-
-        _drawingService.DrawFrame(img);
-        _drawingService.DrawLabel(img, "Rectangles");
-
-        Console.WriteLine($"Found {rectangleList.Count} rectangles.");
+        _drawingService.DrawRectangles(img, rectangleList);
 
         return rectangleList;
     }
@@ -104,16 +96,7 @@ public class ImageProcessor
     private ICollection<Arrow> HandleArrows(Mat img, VectorOfVectorOfPoint contours)
     {
         var arrowList = _shapeService.FindArrows(contours);
-
-        foreach (var arrow in arrowList)
-        {
-            _drawingService.DrawArrow(img, arrow);
-        }
-
-        _drawingService.DrawFrame(img);
-        _drawingService.DrawLabel(img, "Arrows");
-
-        Console.WriteLine($"Found {arrowList.Count} arrows.");
+        _drawingService.DrawArrows(img, arrowList);
 
         return arrowList;
     }

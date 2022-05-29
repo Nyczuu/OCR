@@ -59,6 +59,8 @@ namespace OCR.Services
                 }
             }
 
+            Console.WriteLine($"Found {arrowList.Count} arrows.");
+
             return arrowList;
         }
 
@@ -85,6 +87,8 @@ namespace OCR.Services
                     }
                 }
             }
+
+            Console.WriteLine($"Found {rectangles.Count} rectangles.");
 
             return rectangles;
         }
