@@ -22,8 +22,7 @@ namespace OCR.Services
         {
             foreach (var arrow in arrowList)
             {
-                foreach (var line in arrow.Tail)
-                    CvInvoke.Line(img, line.P1, line.P2, new Bgr(Color.Blue).MCvScalar, 2);
+                CvInvoke.Line(img, arrow.Tail.P1, arrow.Tail.P2, new Bgr(Color.Blue).MCvScalar, 2);
 
                 foreach (var line in arrow.Head)
                     CvInvoke.Line(img, line.P1, line.P2, new Bgr(Color.Blue).MCvScalar, 2);
